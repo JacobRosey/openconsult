@@ -52,14 +52,14 @@ void reportUsageError(std::string error) {
 std::vector<EngineParameter> commonEngineParameters() {
     return std::vector<EngineParameter>{
         EngineParameter::ENGINE_RPM,
-        EngineParameter::LH_MAF_VOLTAGE,
-        EngineParameter::COOLANT_TEMPERATURE,
-        EngineParameter::LH_O2_SENSOR_VOLTAGE,
-        EngineParameter::VEHICLE_SPEED,
-        EngineParameter::BATTERY_VOLTAGE,
-        EngineParameter::THROTTLE_POSITION,
-        EngineParameter::IGNITION_TIMING,
-        EngineParameter::AAC_VALVE,
+        // EngineParameter::LH_MAF_VOLTAGE,
+        //EngineParameter::COOLANT_TEMPERATURE,
+        // EngineParameter::LH_O2_SENSOR_VOLTAGE,
+        //EngineParameter::VEHICLE_SPEED,
+        //EngineParameter::BATTERY_VOLTAGE,
+        //EngineParameter::THROTTLE_POSITION,
+        //EngineParameter::IGNITION_TIMING,
+        // EngineParameter::AAC_VALVE,
     };
 }
 
