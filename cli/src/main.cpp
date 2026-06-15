@@ -52,16 +52,17 @@ void reportUsageError(std::string error) {
 std::vector<EngineParameter> commonEngineParameters() {
     return std::vector<EngineParameter>{
 
-        // rpm works in isolation for both print and stream
+        // rpm works in isolation for both print and stream in isolation
         // rpm + throttle position doesn't work for either print or stream
+        // tps doesn't work for either print or stream in isolation
 
-        //EngineParameter::ENGINE_RPM,
+        EngineParameter::ENGINE_RPM,
         // EngineParameter::LH_MAF_VOLTAGE,
         //EngineParameter::COOLANT_TEMPERATURE,
         // EngineParameter::LH_O2_SENSOR_VOLTAGE,
         //EngineParameter::VEHICLE_SPEED,
-        //EngineParameter::BATTERY_VOLTAGE,
-        EngineParameter::THROTTLE_POSITION,
+        EngineParameter::BATTERY_VOLTAGE,
+        //EngineParameter::THROTTLE_POSITION,
         //EngineParameter::IGNITION_TIMING,
         // EngineParameter::AAC_VALVE,
     };
