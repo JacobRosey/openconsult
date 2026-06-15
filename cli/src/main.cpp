@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace openconsult;
 
@@ -20,7 +21,8 @@ using namespace openconsult;
 #define APP_DESCRIPTION "Command line utility for reading from a Consult device."
 // Keep USAGE to < 100 characters per line, including the newline.
 #define APP_USAGE "usage: " APP_NAME " [--help] [--version] [--log path] [--replay]\n"\
-              "           [--replay_wrap] [--print_ecu] [--print_faults] device"
+              "           [--replay_wrap] [--print_ecu] [--print_faults]\n"\
+              "           [--print_engine] [--stream_engine] [--stream_frames count] device"
 
 ABSL_FLAG(std::string, log, "",
           "Path to log all Consult transactions to. This log may be subsequently "
@@ -33,11 +35,32 @@ ABSL_FLAG(bool, print_ecu, false,
           "Print metadata about the ECU.");
 ABSL_FLAG(bool, print_faults, false,
           "Print any recently observed fault codes.");
+ABSL_FLAG(bool, print_engine, false,
+          "Print one snapshot of common engine parameters.");
+ABSL_FLAG(bool, stream_engine, false,
+          "Stream common engine parameters.");
+ABSL_FLAG(int, stream_frames, 0,
+          "Number of engine parameter frames to stream. A value of 0 streams "
+          "until the program is interrupted.");
 
 void reportUsageError(std::string error) {
     std::cerr << APP_USAGE << "\n";
     std::cerr << "ERROR: " << error << "\n";
     std::exit(2);
+}
+
+std::vector<EngineParameter> commonEngineParameters() {
+    return std::vector<EngineParameter>{
+        EngineParameter::ENGINE_RPM,
+        EngineParameter::LH_MAF_VOLTAGE,
+        EngineParameter::COOLANT_TEMPERATURE,
+        EngineParameter::LH_O2_SENSOR_VOLTAGE,
+        EngineParameter::VEHICLE_SPEED,
+        EngineParameter::BATTERY_VOLTAGE,
+        EngineParameter::THROTTLE_POSITION,
+        EngineParameter::IGNITION_TIMING,
+        EngineParameter::AAC_VALVE,
+    };
 }
 
 int main(int argc, char** argv) {
@@ -54,12 +77,17 @@ int main(int argc, char** argv) {
     std::string log_path = absl::GetFlag(FLAGS_log);
     bool print_ecu = absl::GetFlag(FLAGS_print_ecu);
     bool print_faults = absl::GetFlag(FLAGS_print_faults);
+    bool print_engine = absl::GetFlag(FLAGS_print_engine);
+    bool stream_engine = absl::GetFlag(FLAGS_stream_engine);
+    int stream_frames = absl::GetFlag(FLAGS_stream_frames);
 
     // Validate command line.
     if (positional_args.size() < 2) {
         reportUsageError("The following arguments are required: device");
     } else if (positional_args.size() > 2) {
         reportUsageError("Too many positional arguments supplied");
+    } else if (stream_frames < 0) {
+        reportUsageError("--stream_frames must be 0 or greater");
     }
 
     std::string device_id = positional_args[1];
@@ -103,6 +131,25 @@ int main(int argc, char** argv) {
         std::cout << "===========\n";
         std::cout << faults.toJSON();
         std::cout << "\n";
+    }
+    if (print_engine) {
+        auto parameters = consult.readEngineParameters(commonEngineParameters());
+        std::cout << "\n";
+        std::cout << "ENGINE PARAMETERS\n";
+        std::cout << "=================\n";
+        std::cout << parameters.toJSON();
+        std::cout << "\n";
+    }
+    if (stream_engine) {
+        std::cout << "\n";
+        std::cout << "ENGINE PARAMETERS STREAM\n";
+        std::cout << "========================\n";
+        auto stream = consult.streamEngineParameters(commonEngineParameters());
+        for (int i = 0; stream_frames == 0 || i < stream_frames; ++i) {
+            auto parameters = stream.getFrame();
+            std::cout << parameters.toJSON();
+            std::cout << "\n";
+        }
     }
 
     return 0;

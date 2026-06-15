@@ -22,7 +22,7 @@ TEST(ECUMetadataTest, toJSON) {
 
 
 TEST(FaultCodeDataTest, toJSON) {
-    std::vector<uint8_t> data {51, 42};
+    std::vector<uint8_t> data {0x51, 42};
     FaultCodeData code(data);
     EXPECT_EQ("{\n"
               "  \"code\": 51,\n"
@@ -34,7 +34,7 @@ TEST(FaultCodeDataTest, toJSON) {
 
 
 TEST(FaultCodesTest, toJSON) {
-    std::vector<uint8_t> data {34, 13, 45, 17};
+    std::vector<uint8_t> data {0x34, 13, 0x45, 17};
     FaultCodes codes(data);
     EXPECT_EQ("[\n"
               "  {\n"
@@ -175,7 +175,7 @@ TEST(ConsultInterfaceTest, readFaultCodes_single) {
     EXPECT_CALL(*byte_interface, read(2))
         .Times(Exactly(2))
         .WillOnce(Return(std::vector<uint8_t>{0xFF, 0x02}))
-        .WillOnce(Return(std::vector<uint8_t>{0x33, 0x0B}))
+        .WillOnce(Return(std::vector<uint8_t>{0x51, 0x0B}))
         .RetiresOnSaturation();
     EXPECT_CALL(*byte_interface, write(ElementsAre(0x30)))
         .Times(Exactly(1))
@@ -212,7 +212,7 @@ TEST(ConsultInterfaceTest, readFaultCodes_double) {
         .RetiresOnSaturation();
     EXPECT_CALL(*byte_interface, read(4))
         .Times(Exactly(1))
-        .WillOnce(Return(std::vector<uint8_t>{0x33, 0x0B, 0x69, 0x42}))
+        .WillOnce(Return(std::vector<uint8_t>{0x51, 0x0B, 0x45, 0x42}))
         .RetiresOnSaturation();
     EXPECT_CALL(*byte_interface, write(ElementsAre(0x30)))
         .Times(Exactly(1))
@@ -224,7 +224,7 @@ TEST(ConsultInterfaceTest, readFaultCodes_double) {
     EXPECT_EQ(2, codes.fault_codes.size());
     EXPECT_EQ(FaultCode::FUEL_INJECTOR, codes.fault_codes[0].fault_code);
     EXPECT_EQ(11, codes.fault_codes[0].starts_since_observed);
-    EXPECT_EQ(FaultCode::EXHAUST_GAS_RECIRCULATION_VALVE, codes.fault_codes[1].fault_code);
+    EXPECT_EQ(FaultCode::INJECTOR_LEAK, codes.fault_codes[1].fault_code);
     EXPECT_EQ(66, codes.fault_codes[1].starts_since_observed);
 }
 

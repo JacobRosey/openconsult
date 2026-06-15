@@ -7,8 +7,23 @@
 namespace openconsult {
 
 
+uint8_t faultCodeFromBcd(uint8_t id) {
+    uint8_t tens = id >> 4;
+    uint8_t ones = id & 0x0F;
+    if (tens > 9 || ones > 9) {
+        std::string error = cmn::pformat("Invalid fault code: %02x", id);
+        throw std::invalid_argument(error);
+    }
+    return tens * 10 + ones;
+}
+
+uint8_t faultCodeToBcd(FaultCode code) {
+    uint8_t id = static_cast<uint8_t>(code);
+    return ((id / 10) << 4) | (id % 10);
+}
+
 FaultCode faultCodeFromId(uint8_t id) {
-    FaultCode code = static_cast<FaultCode>(id);
+    FaultCode code = static_cast<FaultCode>(faultCodeFromBcd(id));
     switch (code) {
         case FaultCode::CRANKSHAFT_POSITION_SENSOR_CIRCUIT:
         case FaultCode::MASS_AIR_FLOW_SENSOR:
@@ -79,13 +94,13 @@ FaultCode faultCodeFromId(uint8_t id) {
         case FaultCode::AT_TEMPERATURE_SENSOR:
             return code;
         default:
-            std::string error = cmn::pformat("Unknown fault code: %02x", code);
+            std::string error = cmn::pformat("Unknown fault code: %02x", id);
             throw std::invalid_argument(error);
     }
 }
 
 uint8_t faultCodeToId(FaultCode code) {
-    return static_cast<uint8_t>(code);
+    return faultCodeToBcd(code);
 }
 
 std::string faultCodeName(FaultCode code) {

@@ -45,7 +45,7 @@ FaultCodeData::FaultCodeData(const std::vector<uint8_t>& frame) {
 }
 
 std::string FaultCodeData::toJSON() const {
-    uint32_t id = faultCodeToId(fault_code);
+    uint32_t id = static_cast<uint8_t>(fault_code);
     std::string name = faultCodeName(fault_code);
     std::string desc = faultCodeDescription(fault_code);
     std::stringstream sstream;
@@ -83,7 +83,7 @@ std::string FaultCodes::toJSON() const {
     std::string seperator = "\n";
     sstream << "[";
     for (const auto& data : fault_codes) {
-        uint32_t id = faultCodeToId(data.fault_code);
+        uint32_t id = static_cast<uint8_t>(data.fault_code);
         std::string name = faultCodeName(data.fault_code);
         std::string desc = faultCodeDescription(data.fault_code);
         sstream << seperator

@@ -7,8 +7,8 @@ using namespace openconsult;
 
 
 TEST(ConsultFaultCodesTest, faultCodeFromId) {
-    EXPECT_EQ(faultCodeFromId(22u), FaultCode::FUEL_PUMP);
-    EXPECT_EQ(faultCodeFromId(55u), FaultCode::NO_MALFUNCTION);
+    EXPECT_EQ(faultCodeFromId(0x22u), FaultCode::FUEL_PUMP);
+    EXPECT_EQ(faultCodeFromId(0x55u), FaultCode::NO_MALFUNCTION);
     EXPECT_THROW({
         faultCodeFromId(0xffu);
     }, std::invalid_argument);
@@ -16,8 +16,8 @@ TEST(ConsultFaultCodesTest, faultCodeFromId) {
 
 
 TEST(ConsultFaultCodesTest, faultCodeToId) {
-    EXPECT_EQ(faultCodeToId(FaultCode::FUEL_PUMP), 22u);
-    EXPECT_EQ(faultCodeToId(FaultCode::NO_MALFUNCTION), 55u);
+    EXPECT_EQ(faultCodeToId(FaultCode::FUEL_PUMP), 0x22u);
+    EXPECT_EQ(faultCodeToId(FaultCode::NO_MALFUNCTION), 0x55u);
 }
 
 
