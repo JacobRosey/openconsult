@@ -57,7 +57,7 @@ std::vector<EngineParameter> commonEngineParameters() {
         // EngineParameter::LH_O2_SENSOR_VOLTAGE,
         //EngineParameter::VEHICLE_SPEED,
         //EngineParameter::BATTERY_VOLTAGE,
-        //EngineParameter::THROTTLE_POSITION,
+        EngineParameter::THROTTLE_POSITION,
         //EngineParameter::IGNITION_TIMING,
         // EngineParameter::AAC_VALVE,
     };
