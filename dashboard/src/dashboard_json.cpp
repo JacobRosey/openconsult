@@ -10,6 +10,8 @@ namespace dashboard {
 
 namespace {
 
+constexpr double kKilometersPerHourToMilesPerHour = 0.6213711922;
+
 std::string jsonEscape(const std::string& value) {
     std::stringstream stream;
     for (char c : value) {
@@ -50,6 +52,27 @@ std::string jsonEscape(const std::string& value) {
     return stream.str();
 }
 
+std::string dashboardParameterId(EngineParameter parameter) {
+    if (parameter == EngineParameter::VEHICLE_SPEED) {
+        return "vehicle_speed_mph";
+    }
+    return engineParameterId(parameter);
+}
+
+std::string dashboardParameterName(EngineParameter parameter) {
+    if (parameter == EngineParameter::VEHICLE_SPEED) {
+        return "Vehicle speed (mph)";
+    }
+    return engineParameterName(parameter);
+}
+
+double dashboardParameterValue(EngineParameter parameter, double value) {
+    if (parameter == EngineParameter::VEHICLE_SPEED) {
+        return value * kKilometersPerHourToMilesPerHour;
+    }
+    return value;
+}
+
 }
 
 std::vector<EngineParameter> commonDashboardParameters() {
@@ -75,13 +98,14 @@ std::string engineParametersFrameToJSON(
            << "  \"parameters\": {";
 
     for (const auto& parameter : frame.parameters) {
-        const std::string id = engineParameterId(parameter.first);
-        const std::string name = engineParameterName(parameter.first);
+        const std::string id = dashboardParameterId(parameter.first);
+        const std::string name = dashboardParameterName(parameter.first);
+        const double value = dashboardParameterValue(parameter.first, parameter.second);
         stream << separator
                << "    \"" << jsonEscape(id) << "\": {\n"
                << "      \"name\": \"" << jsonEscape(name) << "\",\n"
                << "      \"value\": " << std::fixed << std::setprecision(2)
-               << parameter.second << "\n"
+               << value << "\n"
                << "    }";
         separator = ",\n";
     }

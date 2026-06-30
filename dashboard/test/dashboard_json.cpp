@@ -11,9 +11,10 @@ using namespace openconsult;
 TEST(DashboardJsonTest, engineParametersFrameToJSON) {
     std::vector<EngineParameter> params {
         EngineParameter::ENGINE_RPM,
+        EngineParameter::VEHICLE_SPEED,
         EngineParameter::BATTERY_VOLTAGE,
     };
-    std::vector<uint8_t> data {0x01, 0x59, 0x97};
+    std::vector<uint8_t> data {0x01, 0x59, 0x32, 0x97};
     EngineParameters parameters(params, data);
 
     EXPECT_EQ("{\n"
@@ -22,6 +23,10 @@ TEST(DashboardJsonTest, engineParametersFrameToJSON) {
               "    \"engine_speed_rpm\": {\n"
               "      \"name\": \"Engine speed (RPM)\",\n"
               "      \"value\": 4312.50\n"
+              "    },\n"
+              "    \"vehicle_speed_mph\": {\n"
+              "      \"name\": \"Vehicle speed (mph)\",\n"
+              "      \"value\": 62.14\n"
               "    },\n"
               "    \"battery_v\": {\n"
               "      \"name\": \"Battery voltage (V)\",\n"
