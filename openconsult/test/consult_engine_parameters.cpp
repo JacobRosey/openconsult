@@ -13,6 +13,10 @@ TEST(ConsultEngineParametersTest, engineParameterCommand) {
                 ElementsAre(0x5A, 0x00, 0x5A, 0x01));
     EXPECT_THAT(engineParameterCommand(EngineParameter::BATTERY_VOLTAGE),
                 ElementsAre(0x5A, 0x0C));
+    EXPECT_THAT(engineParameterCommand(EngineParameter::THROTTLE_POSITION),
+                ElementsAre(0x5A, 0x0D));
+    EXPECT_THAT(engineParameterCommand(EngineParameter::ABSOLUTE_THROTTLE_POSITION),
+                ElementsAre(0x5A, 0x37));
     EXPECT_THROW({
         engineParameterCommand(static_cast<EngineParameter>(0xffu));
     }, std::invalid_argument);
@@ -38,6 +42,15 @@ TEST(ConsultEngineParametersTest, engineParameterDecode_one_byte_valid) {
               58.5);
     EXPECT_EQ(engineParameterDecode(EngineParameter::LH_AIR_FUEL_ALPHA, range),
               64.0);
+    EXPECT_TRUE(range.empty());
+}
+
+TEST(ConsultEngineParametersTest, engineParameterDecode_absoluteThrottle) {
+    const std::vector<uint8_t> data {0x80};
+    auto range = cmn::make_range(data);
+    EXPECT_NEAR(engineParameterDecode(EngineParameter::ABSOLUTE_THROTTLE_POSITION, range),
+                50.196078,
+                0.000001);
     EXPECT_TRUE(range.empty());
 }
 

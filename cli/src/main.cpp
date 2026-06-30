@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+
 using namespace openconsult;
 
 #define APP_NAME "openconsult_cli"
@@ -52,19 +53,19 @@ void reportUsageError(std::string error) {
 std::vector<EngineParameter> commonEngineParameters() {
     return std::vector<EngineParameter>{
 
-        // rpm works in isolation for both print and stream in isolation
-        // rpm + throttle position doesn't work for either print or stream
-        // tps doesn't work for either print or stream in isolation
+        // tps doesn't work for my vehicle, should try to figure that out
+        // gets an "unexpected response" error
 
         EngineParameter::ENGINE_RPM,
-        // EngineParameter::LH_MAF_VOLTAGE,
-        //EngineParameter::COOLANT_TEMPERATURE,
-        // EngineParameter::LH_O2_SENSOR_VOLTAGE,
-        //EngineParameter::VEHICLE_SPEED,
+        EngineParameter::LH_MAF_VOLTAGE,
+        EngineParameter::COOLANT_TEMPERATURE,
+        EngineParameter::LH_O2_SENSOR_VOLTAGE,
+        EngineParameter::VEHICLE_SPEED,
         EngineParameter::BATTERY_VOLTAGE,
         //EngineParameter::THROTTLE_POSITION,
-        //EngineParameter::IGNITION_TIMING,
-        // EngineParameter::AAC_VALVE,
+        //EngineParameter::ABSOLUTE_THROTTLE_POSITION,
+        EngineParameter::IGNITION_TIMING,
+        EngineParameter::AAC_VALVE,
     };
 }
 

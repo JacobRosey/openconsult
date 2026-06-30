@@ -103,6 +103,8 @@ std::vector<uint8_t> engineParameterCommand(EngineParameter parameter) {
             return registersToBytes({RegisterIds::BATTERY_VOLTAGE});
         case EngineParameter::THROTTLE_POSITION:
             return registersToBytes({RegisterIds::THROTTLE_POSITION});
+        case EngineParameter::ABSOLUTE_THROTTLE_POSITION:
+            return registersToBytes({RegisterIds::ABSOLUTE_THROTTLE_POSITION});
         case EngineParameter::FUEL_TEMPERATURE:
             return registersToBytes({RegisterIds::FUEL_TEMP});
         case EngineParameter::INTAKE_AIR_TEMPERATURE:
@@ -193,6 +195,9 @@ double engineParameterDecode(EngineParameter parameter,
         case EngineParameter::EXHAUST_GAS_TEMPERATURE:
             arg_assert(data.size() >= 1);
             return *(data++) * 20 * 0.001;
+        case EngineParameter::ABSOLUTE_THROTTLE_POSITION: // %
+            arg_assert(data.size() >= 1);
+            return *(data++) * 100.0 / 255.0;
         case EngineParameter::LH_INJECTION_TIMING:      // S
         case EngineParameter::RH_INJECTION_TIMING:
             arg_assert(data.size() >= 2);
@@ -260,6 +265,8 @@ std::string engineParameterId(EngineParameter parameter) {
             return "battery_v";
         case EngineParameter::THROTTLE_POSITION:
             return "throttle_position_sensor_v";
+        case EngineParameter::ABSOLUTE_THROTTLE_POSITION:
+            return "absolute_throttle_position_pcnt";
         case EngineParameter::FUEL_TEMPERATURE:
             return "fuel_temp_degc";
         case EngineParameter::INTAKE_AIR_TEMPERATURE:
@@ -333,6 +340,8 @@ std::string engineParameterName(EngineParameter parameter) {
             return "Battery voltage (V)";
         case EngineParameter::THROTTLE_POSITION:
             return "Throttle Position Sensor (V)";
+        case EngineParameter::ABSOLUTE_THROTTLE_POSITION:
+            return "Absolute throttle position (%)";
         case EngineParameter::FUEL_TEMPERATURE:
             return "Fuel temperature (deg C)";
         case EngineParameter::INTAKE_AIR_TEMPERATURE:
@@ -405,6 +414,8 @@ std::string engineParameterDescription(EngineParameter parameter) {
             return "The power supply voltage of the ECM.";
         case EngineParameter::THROTTLE_POSITION:
             return "The signal voltage of the throttle position sensor.";
+        case EngineParameter::ABSOLUTE_THROTTLE_POSITION:
+            return "The absolute throttle opening.";
         case EngineParameter::FUEL_TEMPERATURE:
             return "The temperature of the fuel in the fuel rail.";
         case EngineParameter::INTAKE_AIR_TEMPERATURE:

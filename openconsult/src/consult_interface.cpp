@@ -203,7 +203,11 @@ struct ConsultInterface::impl {
             byte_interface->write(request);
             auto response = byte_interface->read(expected_response.size());
             if (response != expected_response) {
-                throw std::runtime_error("Unexpected response received");
+                throw std::runtime_error(cmn::pformat(
+                    "Unexpected response received for request %s: expected %s, got %s",
+                    cmn::format_bytes(request).c_str(),
+                    cmn::format_bytes(expected_response).c_str(),
+                    cmn::format_bytes(response).c_str()));
             }
         } else {
             byte_interface->write(request);

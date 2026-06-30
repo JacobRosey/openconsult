@@ -18,3 +18,17 @@ http_archive(
   urls = ["https://github.com/abseil/abseil-cpp/archive/20220623.1.zip"],
   strip_prefix = "abseil-cpp-20220623.1",
 )
+
+# Used solely by //dashboard/src:openconsult_dashboard
+http_archive(
+  name = "cpp_httplib",
+  urls = ["https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.15.3.zip"],
+  strip_prefix = "cpp-httplib-0.15.3",
+  build_file_content = """
+cc_library(
+    name = "httplib",
+    hdrs = ["httplib.h"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
