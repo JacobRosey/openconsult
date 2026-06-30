@@ -14,7 +14,7 @@ cc_binary(
     deps = [
         ":dashboard_json",
         "@com_google_absl//absl/flags:parse",
-        "@cpp_httplib//:httplib",
+        "@com_github_yhirose_cpp_httplib//:httplib",
         "//openconsult/src:openconsult",
     ],
 )

@@ -21,7 +21,7 @@ http_archive(
 
 # Used solely by //dashboard/src:openconsult_dashboard
 http_archive(
-  name = "cpp_httplib",
+  name = "com_github_yhirose_cpp_httplib",
   urls = ["https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.15.3.zip"],
   strip_prefix = "cpp-httplib-0.15.3",
   build_file_content = """
