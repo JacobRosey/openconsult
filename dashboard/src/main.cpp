@@ -386,15 +386,14 @@ class EventHub {
 public:
     void publishData(const std::string& json) {
         std::lock_guard<std::mutex> lock(mutex);
-        latest_event = "data: " + json + "\n\n";
+        latest_event = serverSentEvent("", json);
         ++sequence;
         cv.notify_all();
     }
 
     void publishTerminalEvent(const std::string& event_name, const std::string& json) {
         std::lock_guard<std::mutex> lock(mutex);
-        terminal_event = "event: " + event_name + "\n"
-                       + "data: " + json + "\n\n";
+        terminal_event = serverSentEvent(event_name, json);
         stopped = true;
         cv.notify_all();
     }
@@ -421,6 +420,27 @@ public:
     }
 
 private:
+    static std::string serverSentEvent(const std::string& event_name,
+                                       const std::string& data) {
+        std::stringstream stream;
+        if (!event_name.empty()) {
+            stream << "event: " << event_name << "\n";
+        }
+
+        std::size_t line_start = 0;
+        while (line_start <= data.size()) {
+            std::size_t line_end = data.find('\n', line_start);
+            if (line_end == std::string::npos) {
+                stream << "data: " << data.substr(line_start) << "\n";
+                break;
+            }
+            stream << "data: " << data.substr(line_start, line_end - line_start) << "\n";
+            line_start = line_end + 1;
+        }
+        stream << "\n";
+        return stream.str();
+    }
+
     std::mutex mutex;
     std::condition_variable cv;
     uint64_t sequence = 0;
@@ -547,13 +567,13 @@ int main(int argc, char** argv) {
             });
     });
 
-    int bound_port = server.bind_to_port(host.c_str(), port);
-    if (bound_port < 0) {
+    int bind_result = server.bind_to_port(host.c_str(), port);
+    if (bind_result < 0) {
         std::cerr << "Failed to listen on " << host << ":" << port << "\n";
         return 1;
     }
 
-    std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(bound_port);
+    std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(port);
     std::cout << "OpenConsult dashboard listening on " << dashboard_url << "\n";
     if (open_browser && !openBrowser(dashboard_url)) {
         std::cerr << "Failed to open browser for " << dashboard_url << "\n";
