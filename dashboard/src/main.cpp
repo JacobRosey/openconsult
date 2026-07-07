@@ -667,9 +667,18 @@ int main(int argc, char** argv) {
         response.set_header("Connection", "keep-alive");
         auto cursor = std::make_shared<uint64_t>(0);
         auto sent_terminal_event = std::make_shared<bool>(false);
+        auto sent_connected_event = std::make_shared<bool>(false);
         response.set_chunked_content_provider(
             "text/event-stream",
-            [&, cursor, sent_terminal_event](size_t, httplib::DataSink& sink) {
+            [&, cursor, sent_terminal_event, sent_connected_event](size_t, httplib::DataSink& sink) {
+                if (!*sent_connected_event) {
+                    *sent_connected_event = true;
+                    const std::string connected_event =
+                        "event: status\n"
+                        "data: {\"message\":\"Event stream connected\"}\n\n";
+                    return sink.write(connected_event.data(), connected_event.size());
+                }
+
                 std::string event;
                 if (!hub.waitForNext(*cursor, *sent_terminal_event, event)) {
                     return false;
@@ -715,9 +724,6 @@ int main(int argc, char** argv) {
 
     std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(bound_port);
     std::cout << "OpenConsult dashboard listening on " << dashboard_url << "\n";
-    if (open_browser && !openBrowser(dashboard_url)) {
-        std::cerr << "Failed to open browser for " << dashboard_url << "\n";
-    }
 
     std::string device_id = positional_args[1];
     std::thread streamer(streamEngineData,
@@ -729,6 +735,15 @@ int main(int argc, char** argv) {
                          std::ref(done),
                          std::ref(server),
                          stream_frames);
+
+    if (open_browser) {
+        std::thread browser_opener([dashboard_url]() {
+            if (!openBrowser(dashboard_url)) {
+                std::cerr << "Failed to open browser for " << dashboard_url << "\n";
+            }
+        });
+        browser_opener.detach();
+    }
 
     if (streamer.joinable()) {
         streamer.join();
