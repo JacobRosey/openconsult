@@ -39,8 +39,9 @@ using namespace openconsult;
 
 ABSL_FLAG(std::string, host, "127.0.0.1",
           "Address to bind the dashboard HTTP server to.");
-ABSL_FLAG(int, port, 8080,
-          "Port to bind the dashboard HTTP server to.");
+ABSL_FLAG(int, port, 0,
+          "Port to bind the dashboard HTTP server to. A value of 0 asks the OS "
+          "to choose an available port.");
 ABSL_FLAG(std::string, log, "",
           "Path to log all Consult transactions to. This log may be subsequently "
           "'replayed' using the --replay flag.");
@@ -366,6 +367,10 @@ std::string browserHost(const std::string& host) {
     return host;
 }
 
+bool looksLikeUrl(const std::string& value) {
+    return value.find("://") != std::string::npos;
+}
+
 bool openBrowser(const std::string& url) {
     if (!isSafeBrowserUrl(url)) {
         std::cerr << "Refusing to open browser for unsafe URL: " << url << "\n";
@@ -525,8 +530,10 @@ int main(int argc, char** argv) {
         reportUsageError("The following arguments are required: device");
     } else if (positional_args.size() > 2) {
         reportUsageError("Too many positional arguments supplied");
-    } else if (port <= 0 || port > 65535) {
-        reportUsageError("--port must be between 1 and 65535");
+    } else if (port < 0 || port > 65535) {
+        reportUsageError("--port must be between 0 and 65535");
+    } else if (looksLikeUrl(host)) {
+        reportUsageError("--host must be a host or IP address only, for example 127.0.0.1 or 0.0.0.0. Do not include http://");
     } else if (stream_frames < 0) {
         reportUsageError("--stream_frames must be 0 or greater");
     }
@@ -596,7 +603,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(port);
+    std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(bind_result);
     std::cout << "OpenConsult dashboard listening on " << dashboard_url << "\n";
     if (open_browser && !openBrowser(dashboard_url)) {
         std::cerr << "Failed to open browser for " << dashboard_url << "\n";
