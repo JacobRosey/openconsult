@@ -137,6 +137,18 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
+      min-width: 0;
+    }
+
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.45fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .speed-column {
+      min-width: 0;
     }
 
     .tile {
@@ -148,6 +160,26 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       display: grid;
       grid-template-rows: auto 1fr 42px;
       gap: 10px;
+    }
+
+    .speed-tile {
+      min-height: 420px;
+      grid-template-rows: auto 1fr 96px;
+      padding: 20px;
+    }
+
+    .speed-tile .label {
+      font-size: 15px;
+      min-height: 24px;
+    }
+
+    .speed-tile .value {
+      font-size: clamp(86px, 12vw, 150px);
+      letter-spacing: 0;
+    }
+
+    .speed-tile canvas {
+      height: 96px;
     }
 
     .label {
@@ -197,6 +229,24 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       h1 {
         font-size: 24px;
       }
+
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .speed-tile {
+        min-height: 260px;
+        grid-template-rows: auto 1fr 58px;
+        padding: 16px;
+      }
+
+      .speed-tile .value {
+        font-size: clamp(70px, 22vw, 110px);
+      }
+
+      .speed-tile canvas {
+        height: 58px;
+      }
     }
   </style>
 </head>
@@ -206,12 +256,23 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       <h1>OpenConsult</h1>
       <div class="status"><span id="dot" class="dot"></span><span id="status">Connecting</span></div>
     </header>
-    <section id="grid" class="grid" aria-live="polite">
-      <div class="empty">Waiting for engine data</div>
+    <section class="dashboard-layout" aria-live="polite">
+      <aside id="speedColumn" class="speed-column">
+        <article id="speedPlaceholder" class="tile speed-tile">
+          <div class="label">Vehicle speed (mph)</div>
+          <div class="value">--</div>
+          <canvas width="560" height="140"></canvas>
+        </article>
+      </aside>
+      <section id="grid" class="grid">
+        <div class="empty">Waiting for engine data</div>
+      </section>
     </section>
   </main>
   <script>
     const grid = document.getElementById('grid');
+    const speedColumn = document.getElementById('speedColumn');
+    const speedPlaceholder = document.getElementById('speedPlaceholder');
     const statusText = document.getElementById('status');
     const dot = document.getElementById('dot');
     const tiles = new Map();
@@ -223,12 +284,28 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       dot.className = 'dot' + (mode ? ' ' + mode : '');
     }
 
+    function isSpeedParameter(id) {
+      return id === 'vehicle_speed_mph' || id === 'vehicle_speed_kmph';
+    }
+
+    function isVoltageParameter(id, parameter) {
+      return id.endsWith('_v') || /\(V\)/.test(parameter.name) || /voltage/i.test(parameter.name);
+    }
+
+    function formatValue(id, parameter, value) {
+      if (!Number.isFinite(value)) return '--';
+      if (isVoltageParameter(id, parameter)) return value.toFixed(2);
+      return String(Math.trunc(value));
+    }
+
     function ensureTile(id, parameter) {
       if (tiles.has(id)) return tiles.get(id);
-      if (grid.querySelector('.empty')) grid.innerHTML = '';
+      const speed = isSpeedParameter(id);
+      if (speed) speedPlaceholder.remove();
+      else if (grid.querySelector('.empty')) grid.innerHTML = '';
 
       const tile = document.createElement('article');
-      tile.className = 'tile';
+      tile.className = speed ? 'tile speed-tile' : 'tile';
 
       const label = document.createElement('div');
       label.className = 'label';
@@ -239,11 +316,12 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       value.textContent = '--';
 
       const canvas = document.createElement('canvas');
-      canvas.width = 360;
-      canvas.height = 84;
+      canvas.width = speed ? 560 : 360;
+      canvas.height = speed ? 140 : 84;
 
       tile.append(label, value, canvas);
-      grid.append(tile);
+      if (speed) speedColumn.append(tile);
+      else grid.append(tile);
 
       const created = { value, canvas };
       tiles.set(id, created);
@@ -288,7 +366,7 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
       Object.entries(frame.parameters).forEach(([id, parameter]) => {
         const tile = ensureTile(id, parameter);
         const value = Number(parameter.value);
-        tile.value.textContent = Number.isFinite(value) ? value.toFixed(2) : '--';
+        tile.value.textContent = formatValue(id, parameter, value);
 
         const points = history.get(id);
         points.push(value);
