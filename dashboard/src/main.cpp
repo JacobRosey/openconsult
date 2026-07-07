@@ -576,8 +576,16 @@ int main(int argc, char** argv) {
             });
     });
 
-    int bind_result = server.bind_to_port(host.c_str(), port);
-    if (bind_result < 0) {
+    int bound_port = -1;
+    if (port == 0) {
+        bound_port = server.bind_to_any_port(host.c_str());
+    } else {
+        int bind_result = server.bind_to_port(host.c_str(), port);
+        if (bind_result >= 0) {
+            bound_port = port;
+        }
+    }
+    if (bound_port < 0) {
         std::cerr << "Failed to listen on " << host << ":" << port << "\n";
         return 1;
     }
@@ -603,7 +611,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(bind_result);
+    std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(bound_port);
     std::cout << "OpenConsult dashboard listening on " << dashboard_url << "\n";
     if (open_browser && !openBrowser(dashboard_url)) {
         std::cerr << "Failed to open browser for " << dashboard_url << "\n";
