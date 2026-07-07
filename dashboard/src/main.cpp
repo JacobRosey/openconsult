@@ -475,12 +475,19 @@ std::unique_ptr<ByteInterface> openDevice(
     return device;
 }
 
-void streamEngineData(ConsultInterface& consult,
+void streamEngineData(const std::string& device_id,
+                      bool replay,
+                      bool wrap,
+                      const std::string& log_path,
                       EventHub& hub,
                       std::atomic<bool>& done,
                       httplib::Server& server,
                       int stream_frames) {
     try {
+        std::ifstream replay_file;
+        std::ofstream log_file;
+        auto device = openDevice(device_id, replay, wrap, log_path, replay_file, log_file);
+        ConsultInterface consult(std::move(device));
         auto stream = consult.streamEngineParameters(dashboard::commonDashboardParameters());
         for (int i = 0; stream_frames == 0 || i < stream_frames; ++i) {
             auto parameters = stream.getFrame();
@@ -523,11 +530,6 @@ int main(int argc, char** argv) {
     } else if (stream_frames < 0) {
         reportUsageError("--stream_frames must be 0 or greater");
     }
-
-    std::ifstream replay_file;
-    std::ofstream log_file;
-    auto device = openDevice(positional_args[1], replay, wrap, log_path, replay_file, log_file);
-    ConsultInterface consult(std::move(device));
 
     EventHub hub;
     std::atomic<bool> done(false);
@@ -573,26 +575,49 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    std::atomic<bool> listen_failed(false);
+    std::thread listener([&]() {
+        if (!server.listen_after_bind()) {
+            listen_failed = true;
+            if (!done) {
+                std::cerr << "Failed to listen on " << host << ":" << port << "\n";
+            }
+        }
+    });
+
+    while (!server.is_running() && !listen_failed) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    if (listen_failed) {
+        if (listener.joinable()) {
+            listener.join();
+        }
+        return 1;
+    }
+
     std::string dashboard_url = "http://" + browserHost(host) + ":" + std::to_string(port);
     std::cout << "OpenConsult dashboard listening on " << dashboard_url << "\n";
     if (open_browser && !openBrowser(dashboard_url)) {
         std::cerr << "Failed to open browser for " << dashboard_url << "\n";
     }
 
+    std::string device_id = positional_args[1];
     std::thread streamer(streamEngineData,
-                         std::ref(consult),
+                         device_id,
+                         replay,
+                         wrap,
+                         log_path,
                          std::ref(hub),
                          std::ref(done),
                          std::ref(server),
                          stream_frames);
 
-    if (!server.listen_after_bind()) {
-        std::cerr << "Failed to listen on " << host << ":" << port << "\n";
-        server.stop();
-    }
-
     if (streamer.joinable()) {
         streamer.join();
+    }
+    if (listener.joinable()) {
+        listener.join();
     }
 
     return done ? 0 : 1;
