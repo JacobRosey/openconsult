@@ -83,8 +83,9 @@ SerialPort::SerialPort(const std::string& device, uint32_t baud_rate)
     tty.c_iflag &= ~IGNBRK;                     // Ignore BREAK condition on input.
     tty.c_iflag &= ~(IXON | IXOFF | IXANY);     // Disable XON/XOFF flow control.
     tty.c_oflag = 0;                            // Disable all remapping and delays.
-    tty.c_cc[VMIN] = 1;                         // Set VMIN to a non-zero value to enable blocking.
-    tty.c_cc[VTIME] = 0;                        // Disable read timeouts.
+    tty.c_cc[VMIN] = 0;                         // Return when data is available or when the
+                                                // timeout below expires.
+    tty.c_cc[VTIME] = 10;                       // Timeout reads after 1 second.
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
         std::string error = cmn::pformat("Failed to configure device: %s", strerror(errno));
@@ -109,6 +110,9 @@ std::vector<uint8_t> SerialPort::read(std::size_t size) {
         if (bytes_read < 0) {
             std::string error = cmn::pformat("Failed to read from serial port: %s", strerror(errno));
             throw os_error(error);
+        }
+        if (bytes_read == 0) {
+            throw os_error("Timed out reading from serial port");
         }
         total_bytes_read += static_cast<std::size_t>(bytes_read);
     }

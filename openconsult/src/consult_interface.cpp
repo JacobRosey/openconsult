@@ -2,7 +2,9 @@
 #include "common.h"
 #include "consult_engine_parameters.internal.h"
 #include "consult_fault_codes.internal.h"
+#include <chrono>
 #include <sstream>
+#include <thread>
 
 namespace openconsult {
 
@@ -147,10 +149,25 @@ struct ConsultInterface::impl {
     impl(std::unique_ptr<ByteInterface> _byte_interface)
             : byte_interface(std::move(_byte_interface)) {
         // Connect to the underlying Consult device.
-        byte_interface->write({{0xFF, 0xFF, 0xEF}});
-        while (byte_interface->read(1)[0] != 0x10) {
-            // Spin.
+        std::string last_error;
+        for (int attempt = 1; attempt <= 10; ++attempt) {
+            try {
+                byte_interface->write({{0xFF, 0xFF, 0xEF}});
+                auto response = byte_interface->read(1);
+                if (response[0] == 0x10) {
+                    return;
+                }
+                last_error = cmn::pformat(
+                    "unexpected init response %s",
+                    cmn::format_bytes(response).c_str());
+            } catch (const std::exception& error) {
+                last_error = error.what();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
+        throw std::runtime_error(cmn::pformat(
+            "Timed out waiting for ECU init response after 10 attempts: %s",
+            last_error.c_str()));
     }
 
     // Non-copyable.
@@ -272,7 +289,12 @@ ConsultResponseStream<EngineParameters>& ConsultResponseStream<EngineParameters>
 
 ConsultResponseStream<EngineParameters>::~ConsultResponseStream() {
     if (pimpl) {
-        pimpl->halt();
+        try {
+            pimpl->halt();
+        } catch (const std::exception&) {
+            // Destructors must not throw. If the stream is already failing,
+            // the original read/execute error is the useful one.
+        }
     }
 }
 

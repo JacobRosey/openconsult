@@ -47,8 +47,17 @@ SerialPort::SerialPort(const std::string& device, uint32_t baud_rate)
     params.Parity = NOPARITY;
     params.fDtrControl = DTR_CONTROL_ENABLE;    // Enable DTR flow control.
 
-    if (!SetCommState(handle, &params))
+    if (!SetCommState(handle, &params)) {
         std::string error = cmn::pformat("Failed to configure device: %s", last_error());
+        throw os_error(error);
+    }
+
+    COMMTIMEOUTS timeouts = {0};
+    timeouts.ReadIntervalTimeout = MAXDWORD;
+    timeouts.ReadTotalTimeoutConstant = 1000;
+    timeouts.ReadTotalTimeoutMultiplier = 0;
+    if (!SetCommTimeouts(handle, &timeouts)) {
+        std::string error = cmn::pformat("Failed to configure device timeouts: %s", last_error());
         throw os_error(error);
     }
     PurgeComm(handle, PURGE_RXCLEAR | PURGE_TXCLEAR);
@@ -65,7 +74,7 @@ std::vector<uint8_t> SerialPort::read(std::size_t size) {
     std::vector<uint8_t> buff(size);
     std::size_t total_bytes_read = 0;
     while (total_bytes_read < size) {
-        std::size_t bytes_read = 0;
+        DWORD bytes_read = 0;
         bool success = ReadFile(pimpl->port_handle,
                 buff.data() + total_bytes_read,
                 size - total_bytes_read,
@@ -73,6 +82,9 @@ std::vector<uint8_t> SerialPort::read(std::size_t size) {
         if (!success) {
             std::string error = cmn::pformat("Failed to read from serial port: %s", last_error());
             throw os_error(error);
+        }
+        if (bytes_read == 0) {
+            throw os_error("Timed out reading from serial port");
         }
         total_bytes_read += bytes_read;
     }
@@ -82,7 +94,7 @@ std::vector<uint8_t> SerialPort::read(std::size_t size) {
 void SerialPort::write(const std::vector<uint8_t>& bytes) {
     std::size_t total_bytes_written = 0;
     while (total_bytes_written < bytes.size()) {
-        std::size_t bytes_written = 0;
+        DWORD bytes_written = 0;
         bool success = WriteFile(pimpl->port_handle,
                 bytes.data() + total_bytes_written,
                 bytes.size() - total_bytes_written,
