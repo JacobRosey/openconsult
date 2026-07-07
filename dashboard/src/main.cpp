@@ -298,13 +298,28 @@ const char kDashboardHtml[] = R"HTML(<!doctype html>
     }
 
     const events = new EventSource('/events');
+    let closingEvents = false;
     events.onopen = () => setStatus('Connected', 'live');
     events.onmessage = (event) => renderFrame(JSON.parse(event.data));
-    events.addEventListener('error', (event) => {
-      setStatus(event.data || 'Stream error', 'error');
+    events.addEventListener('status', (event) => {
+      const status = JSON.parse(event.data);
+      setStatus(status.message || 'Connected', 'live');
+    });
+    events.addEventListener('stream-error', (event) => {
+      const error = JSON.parse(event.data);
+      setStatus(error.message || 'Stream error', 'error');
+      closingEvents = true;
       events.close();
     });
-    events.onerror = () => setStatus('Disconnected', 'error');
+    events.addEventListener('done', (event) => {
+      const done = JSON.parse(event.data);
+      setStatus(done.message || 'Stream completed', 'live');
+      closingEvents = true;
+      events.close();
+    });
+    events.onerror = () => {
+      if (!closingEvents) setStatus('Disconnected', 'error');
+    };
   </script>
 </body>
 </html>)HTML";
@@ -390,8 +405,12 @@ bool openBrowser(const std::string& url) {
 class EventHub {
 public:
     void publishData(const std::string& json) {
+        publishEvent("", json);
+    }
+
+    void publishEvent(const std::string& event_name, const std::string& json) {
         std::lock_guard<std::mutex> lock(mutex);
-        latest_event = serverSentEvent("", json);
+        latest_event = serverSentEvent(event_name, json);
         ++sequence;
         cv.notify_all();
     }
@@ -489,11 +508,15 @@ void streamEngineData(const std::string& device_id,
                       httplib::Server& server,
                       int stream_frames) {
     try {
+        hub.publishEvent("status", "{\"message\":\"Opening device\"}");
         std::ifstream replay_file;
         std::ofstream log_file;
         auto device = openDevice(device_id, replay, wrap, log_path, replay_file, log_file);
+        hub.publishEvent("status", "{\"message\":\"Connecting to ECU\"}");
         ConsultInterface consult(std::move(device));
+        hub.publishEvent("status", "{\"message\":\"Starting engine stream\"}");
         auto stream = consult.streamEngineParameters(dashboard::commonDashboardParameters());
+        hub.publishEvent("status", "{\"message\":\"Waiting for first frame\"}");
         for (int i = 0; stream_frames == 0 || i < stream_frames; ++i) {
             auto parameters = stream.getFrame();
             hub.publishData(dashboard::engineParametersFrameToJSON(parameters, nowMilliseconds()));
@@ -501,8 +524,9 @@ void streamEngineData(const std::string& device_id,
 
         hub.publishTerminalEvent("done", "{\"message\":\"Stream completed\"}");
     } catch (const std::exception& error) {
+        std::cerr << "Dashboard stream error: " << error.what() << "\n";
         hub.publishTerminalEvent(
-            "error",
+            "stream-error",
             std::string("{\"message\":") + jsonString(error.what()) + "}");
     }
     done = true;

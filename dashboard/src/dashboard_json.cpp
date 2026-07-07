@@ -78,9 +78,11 @@ double dashboardParameterValue(EngineParameter parameter, double value) {
 std::vector<EngineParameter> commonDashboardParameters() {
     return std::vector<EngineParameter>{
         EngineParameter::ENGINE_RPM,
-        EngineParameter::BATTERY_VOLTAGE,
+        EngineParameter::LH_MAF_VOLTAGE,
         EngineParameter::COOLANT_TEMPERATURE,
+        EngineParameter::LH_O2_SENSOR_VOLTAGE,
         EngineParameter::VEHICLE_SPEED,
+        EngineParameter::BATTERY_VOLTAGE,
         //EngineParameter::THROTTLE_POSITION,
         //EngineParameter::ABSOLUTE_THROTTLE_POSITION,
         EngineParameter::IGNITION_TIMING,
